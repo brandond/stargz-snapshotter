@@ -22,30 +22,29 @@ import (
 
 	"github.com/containerd/containerd/defaults"
 	"github.com/containerd/containerd/pkg/dialer"
+	"github.com/containerd/stargz-snapshotter/service/keychain/cri"
+	"github.com/containerd/stargz-snapshotter/service/plugincore"
+	"github.com/containerd/stargz-snapshotter/service/resolver"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
-
-	runtime_alpha "github.com/containerd/containerd/third_party/k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"github.com/containerd/stargz-snapshotter/service/keychain/crialpha"
-	"github.com/containerd/stargz-snapshotter/service/plugincore"
-	"github.com/containerd/stargz-snapshotter/service/resolver"
+	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func init() {
-	plugincore.RegisterPlugin(registerCRIAlphaServer)
+	plugincore.RegisterPlugin(registerCRIServer)
 }
 
-func registerCRIAlphaServer(ctx context.Context, criAddr string, rpc *grpc.Server) resolver.Credential {
-	connectAlphaCRI := func() (runtime_alpha.ImageServiceClient, error) {
+func registerCRIServer(ctx context.Context, criAddr string, rpc *grpc.Server) resolver.Credential {
+	connectAlphaCRI := func() (runtime.ImageServiceClient, error) {
 		conn, err := newCRIConn(criAddr)
 		if err != nil {
 			return nil, err
 		}
-		return runtime_alpha.NewImageServiceClient(conn), nil
+		return runtime.NewImageServiceClient(conn), nil
 	}
-	criAlphaCreds, criAlphaServer := crialpha.NewCRIAlphaKeychain(ctx, connectAlphaCRI)
-	runtime_alpha.RegisterImageServiceServer(rpc, criAlphaServer)
+	criAlphaCreds, criAlphaServer := cri.NewCRIKeychain(ctx, connectAlphaCRI)
+	runtime.RegisterImageServiceServer(rpc, criAlphaServer)
 	return criAlphaCreds
 }
 
