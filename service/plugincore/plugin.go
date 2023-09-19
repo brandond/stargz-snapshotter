@@ -59,9 +59,17 @@ func RegisterPlugin() {
 		Type:   ctdplugin.SnapshotPlugin,
 		ID:     "stargz",
 		Config: &Config{},
-		InitFn: func(ic *ctdplugin.InitContext) (interface{}, error) {
-			ic.Meta.Platforms = append(ic.Meta.Platforms, platforms.DefaultSpec())
+		InitFn: func(ic *ctdplugin.InitContext) (_ interface{}, rerr error) {
 			ctx := ic.Context
+			log.G(ctx).Info("stargz snapshotter plugin init")
+			defer func() {
+				if r := recover(); r != nil {
+					log.G(ctx).Infof("stargz plugin recovered from panic: %#v", r)
+				}
+				log.G(ctx).WithError(rerr).Info("stargz plugin init complete")
+			}()
+
+			ic.Meta.Platforms = append(ic.Meta.Platforms, platforms.DefaultSpec())
 
 			config, ok := ic.Config.(*Config)
 			if !ok {
